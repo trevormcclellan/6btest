@@ -41,7 +41,7 @@ export const cookies = document.cookie.split(/ */).reduce((obj, str) => {
   }
   
   export const authenticated = () => new Promise(resolve => {
-    fetch(`${process.env.VUE_APP_API_ORIGIN}/api/v1/auth`, { credentials: 'include' })
+    fetch(`${process.env.VUE_APP_API_ORIGIN}/api/v1/user`, { credentials: 'include' })
       .then(({ ok }) => resolve(ok))
       .catch(err => {
         console.error(`Error in 'authenticated': `, err)
