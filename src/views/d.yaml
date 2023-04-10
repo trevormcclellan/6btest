@@ -1,0 +1,61 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.30.33.0/24
+    
+frontend:
+  themes: !include_dir_merge_named themes
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+template:
+         
+  - sensor:
+    - name: "Trigger Temperature"
+      state: >
+        {% set bedroom = states('sensor.bedroom_temperature') |float %}
+        {% set living_room = states('sensor.living_room_temperature') | float %}
+        {% if is_state('climate.thermostat', 'heat') %}
+          {{ [bedroom, living_room]|min }}
+        {% elif is_state('climate.thermostat', 'cool') %}
+          {{ [bedroom, living_room]|max }}
+        {% elif is_state('climate.thermostat', 'heat_cool') %}
+        {% set low_temp = state_attr('climate.thermostat', 'target_temp_low') | float %}
+        {% set high_temp = state_attr('climate.thermostat', 'target_temp_high') | float %}
+        {% set avg_temp = ((bedroom + living_room) / 2) | round(1, default=0) %}
+          {% if avg_temp < low_temp %}
+            {{ [bedroom, living_room]|min }}
+          {% else %}
+            {{ [bedroom, living_room]|max }}
+          {% endif %}
+        {% else %}
+            {{ living_room }}
+        {% endif %}
+
+sensor:
+    - platform: command_line
+      name: cpu_temperature
+      command: "cat /sys/class/thermal/thermal_zone0/temp | awk '{print ((($1*.001) * 9 / 5))+32}'"
+      unit_of_measurement: "°F"
+      
+switch:
+  - platform: rpi_gpio
+    switches:
+      - port: 23
+        name: "AC"
+      - port: 24
+        name: "Heater"
+      - port: 25
+        name: "Fan"
+      
+climate: !include_dir_merge_list climate/
